@@ -1,0 +1,54 @@
+Folder PATH listing
+Volume serial number is 3AF4-AA3E
+C:.
+|   conftest.py
+|   project_structure.txt
+|   README.md
+|   requirements.txt
+|   
++---.github
+|   \---workflows
+|           ci.yml
+|           
++---.pytest_cache
+|   |   .gitignore
+|   |   CACHEDIR.TAG
+|   |   README.md
+|   |   
+|   \---v
+|       \---cache
+|               lastfailed
+|               nodeids
+|               stepwise
+|               
++---pages
+|   |   base_page.py
+|   |   __init__.py
+|   |   
+|   \---__pycache__
+|           base_page.cpython-312.pyc
+|           __init__.cpython-312.pyc
+|           
++---reports
++---tests
+|   |   test_registration.py
+|   |   __init__.py
+|   |   
+|   \---__pycache__
+|           test_registration.cpython-312-pytest-8.3.4.pyc
+|           test_registration.cpython-312.pyc
+|           __init__.cpython-312.pyc
+|           
++---utils
+|   |   config.py
+|   |   driver_factory.py
+|   |   __init__.py
+|   |   
+|   \---__pycache__
+|           config.cpython-312.pyc
+|           driver_factory.cpython-312.pyc
+|           __init__.cpython-312.pyc
+|           
+\---__pycache__
+        conftest.cpython-312-pytest-8.3.4.pyc
+        

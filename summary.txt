@@ -1,0 +1,306 @@
+
+--- C:\Users\alber\OneDrive\Escritorio\Proyecto PWC\conftest.py ---
+import pytest
+from utils.driver_factory import DriverFactory
+
+def pytest_addoption(parser):
+    parser.addoption(
+        "--browser",
+        action="store",
+        default="firefox",
+        help="Browser a usar para las pruebas (chrome o firefox)."
+    )
+    parser.addoption(
+        "--headless",
+        action="store_true",
+        default=False,
+        help="Ejecutar en modo headless (sin interfaz gráfica)."
+    )
+
+@pytest.fixture(scope="class")
+def setup_driver(request):
+    browser = request.config.getoption("--browser")
+    headless = request.config.getoption("--headless")
+    driver = DriverFactory.get_driver(browser, headless=headless)
+    request.cls.driver = driver
+    yield
+    driver.quit()
+
+--- C:\Users\alber\OneDrive\Escritorio\Proyecto PWC\project_summary.py ---
+import os
+
+# Ruta al proyecto local (se ajusta automáticamente a la ubicación del script)
+project_path = os.path.dirname(os.path.abspath(__file__))
+output_file = os.path.join(project_path, "summary.txt")
+
+# Extensiones relevantes (modifica según tus necesidades)
+extensions = [".py", ".yaml", ".json", ".md", ".sh"]
+
+with open(output_file, "w", encoding="utf-8") as summary:
+    for root, dirs, files in os.walk(project_path):
+        for file in files:
+            if any(file.endswith(ext) for ext in extensions):
+                file_path = os.path.join(root, file)
+                summary.write(f"\n--- {file_path} ---\n")
+                with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+                    summary.write(f.read())
+
+--- C:\Users\alber\OneDrive\Escritorio\Proyecto PWC\README.md ---
+# qa-automation-prestashop
+--- C:\Users\alber\OneDrive\Escritorio\Proyecto PWC\.pytest_cache\README.md ---
+# pytest cache directory #
+
+This directory contains data from the pytest's cache plugin,
+which provides the `--lf` and `--ff` options, as well as the `cache` fixture.
+
+**Do not** commit this to version control.
+
+See [the docs](https://docs.pytest.org/en/stable/how-to/cache.html) for more information.
+
+--- C:\Users\alber\OneDrive\Escritorio\Proyecto PWC\pages\base_page.py ---
+import time
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+
+from utils.config import TestConfig
+
+class BasePage:
+    def __init__(self, driver):
+        self.driver = driver
+        self.wait = WebDriverWait(driver, TestConfig.MAX_TIMEOUT)
+
+    def switch_to_main_frame(self, frame_id="framelive"):
+        """
+        Cambia al iframe principal de la demo PrestaShop.
+        """
+        self.driver.switch_to.default_content()
+        iframe = self.wait.until(EC.presence_of_element_located((By.ID, frame_id)))
+        self.driver.switch_to.frame(iframe)
+
+    def scroll_into_view(self, element):
+        """
+        Desplaza la vista hasta que 'element' sea visible.
+        """
+        self.driver.execute_script("arguments[0].scrollIntoView(true);", element)
+
+    def action_chains_click(self, element):
+        """
+        Hace clic usando ActionChains (mover ratón, click).
+        """
+        actions = ActionChains(self.driver)
+        actions.move_to_element(element).click().perform()
+
+    def mark_checkbox_reliably(self, checkbox_by, checkbox_locator, max_attempts=3):
+        """
+        Intenta marcar un checkbox repetidamente hasta max_attempts.
+        Busca el <label> padre y hace clic, verificando que el input se marque.
+        """
+        for attempt in range(1, max_attempts + 1):
+            try:
+                checkbox = self.wait.until(EC.presence_of_element_located((checkbox_by, checkbox_locator)))
+                self.scroll_into_view(checkbox)
+
+                # Buscamos el label ascendente
+                label_parent = checkbox.find_element(By.XPATH, "./ancestor::label")
+
+                # Clic con ActionChains
+                self.action_chains_click(label_parent)
+                time.sleep(1)
+
+                # Verificamos si quedó marcado
+                if checkbox.is_selected():
+                    print(f"✓ Checkbox {checkbox_locator} marcado en intento #{attempt}")
+                    return
+                else:
+                    print(f"  - Checkbox {checkbox_locator} NO marcado en intento #{attempt}. Reintentando...")
+
+            except Exception as e:
+                print(f"  - Error clickeando checkbox {checkbox_locator} (intento {attempt}): {str(e)}")
+                time.sleep(1)
+
+        raise TimeoutException(f"✗ No se pudo marcar el checkbox '{checkbox_locator}' tras {max_attempts} intentos.")
+
+    def click_button_reliably(self, button_by, button_locator, max_attempts=3):
+        """
+        Hace clic (ActionChains) en un botón, reintentando hasta max_attempts.
+        """
+        for attempt in range(1, max_attempts + 1):
+            try:
+                button = self.wait.until(EC.element_to_be_clickable((button_by, button_locator)))
+                self.scroll_into_view(button)
+
+                self.action_chains_click(button)
+                print(f"✓ Botón '{button_locator}' clickeado en intento #{attempt}")
+                time.sleep(1)
+                return  # Si no hubo excepción, lo consideramos OK
+
+            except Exception as e:
+                print(f"  - Error clickeando botón {button_locator} (intento {attempt}): {str(e)}")
+                time.sleep(1)
+
+        raise TimeoutException(f"✗ No se pudo hacer clic en el botón '{button_locator}' tras {max_attempts} intentos.")
+
+    def input_text(self, by, locator, text):
+        """
+        Localiza un campo de texto, limpia y escribe 'text'.
+        """
+        element = self.wait.until(EC.presence_of_element_located((by, locator)))
+        self.scroll_into_view(element)
+        element.clear()
+        element.send_keys(text)
+        print(f"✓ Texto '{text}' ingresado en: {by}={locator}")
+
+    def get_element_text(self, by, locator):
+        element = self.wait.until(EC.presence_of_element_located((by, locator)))
+        return element.text
+
+--- C:\Users\alber\OneDrive\Escritorio\Proyecto PWC\pages\__init__.py ---
+
+--- C:\Users\alber\OneDrive\Escritorio\Proyecto PWC\tests\test_registration.py ---
+import random
+import string
+import time
+import pytest
+from selenium.webdriver.common.by import By
+from pages.base_page import BasePage
+from utils.config import TestConfig
+
+class RegistrationPage(BasePage):
+    """
+    Page Object para el registro en PrestaShop.
+    """
+    SIGN_IN_BUTTON = (By.CSS_SELECTOR, ".user-info a")
+    CREATE_ACCOUNT_LINK = (By.XPATH, "//a[contains(text(), 'No account? Create one here')]")
+    TITLE_MR = (By.CSS_SELECTOR, "label[for='field-id_gender-1']")
+    FIRST_NAME_INPUT = (By.NAME, "firstname")
+    LAST_NAME_INPUT = (By.NAME, "lastname")
+    EMAIL_INPUT = (By.NAME, "email")
+    PASSWORD_INPUT = (By.NAME, "password")
+    PRIVACY_CHECKBOX = (By.NAME, "psgdpr")
+    CUSTOMER_PRIVACY_CHECKBOX = (By.NAME, "customer_privacy")
+    SAVE_BUTTON = (By.CSS_SELECTOR, "button[data-link-action='save-customer'], button.form-control-submit")
+    ERROR_MESSAGE = (By.CSS_SELECTOR, ".alert.alert-danger")
+
+    def test_create_account(self, first_name, last_name, email, password):
+        print("\n=== Iniciando prueba de registro ===")
+        print(f"Datos:\n  Nombre: {first_name} {last_name}\n  Email: {email}\n  Password: {password}")
+        try:
+            self.driver.get(TestConfig.BASE_URL)
+            self.switch_to_main_frame()
+            self.click_button_reliably(*self.SIGN_IN_BUTTON)
+            self.click_button_reliably(*self.CREATE_ACCOUNT_LINK)
+            self.click_button_reliably(*self.TITLE_MR)
+            self.input_text(*self.FIRST_NAME_INPUT, first_name)
+            self.input_text(*self.LAST_NAME_INPUT, last_name)
+            self.input_text(*self.EMAIL_INPUT, email)
+            self.input_text(*self.PASSWORD_INPUT, password)
+            self.mark_checkbox_reliably(*self.PRIVACY_CHECKBOX)
+            self.mark_checkbox_reliably(*self.CUSTOMER_PRIVACY_CHECKBOX)
+            time.sleep(1)
+            self.click_button_reliably(*self.SAVE_BUTTON)
+            print("Registro completado exitosamente. El navegador mantendrá sesión activa para inspección.")
+            print("Esperando 10s para inspección visual...")
+            time.sleep(10)
+        except Exception as e:
+            print(f"✗ Error en test_create_account: {str(e)}")
+            raise
+
+    def generate_strong_password(self, length=12):
+        chars = string.ascii_letters + string.digits + string.punctuation
+        return ''.join(random.choices(chars, k=length))
+
+@pytest.mark.usefixtures("setup_driver")
+class TestRegistrationFlow:
+    def test_registration_flow(self):
+        page = RegistrationPage(self.driver)
+
+        # Test con contraseña débil
+        weak_pass = "Test123!"
+        print("\n[+] Test con contraseña débil")
+        try:
+            page.test_create_account(
+                first_name="Test",
+                last_name="User",
+                email=TestConfig.TEST_EMAIL,
+                password=weak_pass
+            )
+        except Exception as e:
+            print(f"✗ Error esperado con contraseña débil: {str(e)}")
+
+        # Test con contraseña fuerte
+        strong_pass = page.generate_strong_password()
+        print("\n[+] Test con contraseña fuerte")
+        page.test_create_account(
+            first_name="Test",
+            last_name="User",
+            email="strong_test@example.com",
+            password=strong_pass
+        )
+
+--- C:\Users\alber\OneDrive\Escritorio\Proyecto PWC\tests\__init__.py ---
+
+--- C:\Users\alber\OneDrive\Escritorio\Proyecto PWC\utils\config.py ---
+class TestConfig:
+    BASE_URL = "https://demo.prestashop.com/#/en/front"
+    MAX_TIMEOUT = 30
+    TEST_EMAIL = "testalbertoropervilar@addy.io"
+
+--- C:\Users\alber\OneDrive\Escritorio\Proyecto PWC\utils\driver_factory.py ---
+from selenium import webdriver
+from selenium.common.exceptions import WebDriverException
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.firefox.service import Service as FirefoxService
+
+class DriverFactory:
+    @staticmethod
+    def get_driver(browser, headless=False):
+        """
+        Retorna un driver de Selenium según el navegador indicado.
+        browser: "chrome" o "firefox"
+        headless: bool para ejecutar sin interfaz gráfica
+        """
+        browser = browser.lower()
+
+        if browser == "chrome":
+            from selenium.webdriver.chrome.options import Options
+            options = Options()
+            options.add_argument("--no-sandbox")
+            options.add_argument("--disable-dev-shm-usage")
+            options.add_argument("--disable-infobars")
+            options.add_argument("--disable-extensions")
+            if headless:
+                options.add_argument("--headless")
+                # A veces se recomienda "--disable-gpu" solo en ciertos entornos
+                options.add_argument("--disable-gpu")
+            try:
+                print("[INFO] Iniciando ChromeDriver...")
+                from webdriver_manager.chrome import ChromeDriverManager
+                return webdriver.Chrome(
+                    service=ChromeService(ChromeDriverManager().install()),
+                    options=options
+                )
+            except WebDriverException as e:
+                raise RuntimeError("Error inicializando ChromeDriver.") from e
+
+        elif browser == "firefox":
+            from selenium.webdriver.firefox.options import Options
+            options = Options()
+            if headless:
+                options.add_argument("--headless")
+            try:
+                print("[INFO] Iniciando GeckoDriver para Firefox...")
+                from webdriver_manager.firefox import GeckoDriverManager
+                return webdriver.Firefox(
+                    service=FirefoxService(GeckoDriverManager().install()),
+                    options=options
+                )
+            except WebDriverException as e:
+                raise RuntimeError("Error inicializando GeckoDriver.") from e
+
+        else:
+            raise ValueError(f"Browser '{browser}' no soportado. Usa 'chrome' o 'firefox'.")
+
+--- C:\Users\alber\OneDrive\Escritorio\Proyecto PWC\utils\__init__.py ---
