@@ -32,9 +32,6 @@ def fill_contact_form(self, subject_index, email, message, file_path=None):
     subject_index: índice del asunto en el dropdown (1: Customer service, 2: Webmaster)
     """
     try:
-        # Asegurarse que estamos en el frame correcto
-        self.switch_to_main_frame()
-        
         # Seleccionar asunto
         if subject_index is not None:
             subject = self.wait.until(EC.presence_of_element_located(self.SUBJECT_DROPDOWN))
