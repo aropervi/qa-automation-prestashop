@@ -26,37 +26,40 @@ class ContactPage(BasePage):
         self.click_button_reliably(*self.CONTACT_LINK)
         print("✓ Navegación a página de contacto")
 
-    def fill_contact_form(self, subject_index, email, message, file_path=None):
-        """
-        Rellena el formulario de contacto
-        subject_index: índice del asunto en el dropdown (1: Customer service, 2: Webmaster)
-        """
-        try:
-            # Seleccionar asunto
-            if subject_index is not None:
-                subject = self.wait.until(EC.presence_of_element_located(self.SUBJECT_DROPDOWN))
-                subject.click()
-                subject.send_keys(f"{subject_index}")
-                print(f"✓ Asunto seleccionado: {subject_index}")
+def fill_contact_form(self, subject_index, email, message, file_path=None):
+    """
+    Rellena el formulario de contacto
+    subject_index: índice del asunto en el dropdown (1: Customer service, 2: Webmaster)
+    """
+    try:
+        # Asegurarse que estamos en el frame correcto
+        self.switch_to_main_frame()
+        
+        # Seleccionar asunto
+        if subject_index is not None:
+            subject = self.wait.until(EC.presence_of_element_located(self.SUBJECT_DROPDOWN))
+            subject.click()
+            subject.send_keys(f"{subject_index}")
+            print(f"✓ Asunto seleccionado: {subject_index}")
 
-            # Email y mensaje
-            self.input_text(*self.EMAIL_INPUT, email)
-            self.input_text(*self.MESSAGE_INPUT, message)
+        # Email y mensaje
+        self.input_text(*self.EMAIL_INPUT, email)
+        self.input_text(*self.MESSAGE_INPUT, message)
 
-            # Subir archivo si se proporciona
-            if file_path:
-                file_input = self.wait.until(EC.presence_of_element_located(self.FILE_UPLOAD))
-                file_input.send_keys(file_path)
-                print(f"✓ Archivo subido: {file_path}")
+        # Subir archivo si se proporciona
+        if file_path:
+            file_input = self.wait.until(EC.presence_of_element_located(self.FILE_UPLOAD))
+            file_input.send_keys(file_path)
+            print(f"✓ Archivo subido: {file_path}")
 
-            # Enviar formulario
-            self.click_button_reliably(*self.SUBMIT_BUTTON)
-            print("✓ Formulario enviado")
-            time.sleep(2)  # Esperamos a que se procese el envío
+        # Enviar formulario
+        self.click_button_reliably(*self.SUBMIT_BUTTON)
+        print("✓ Formulario enviado")
+        time.sleep(2)  # Esperamos a que se procese el envío
 
-        except Exception as e:
-            print(f"✗ Error en fill_contact_form: {str(e)}")
-            raise
+    except Exception as e:
+        print(f"✗ Error en fill_contact_form: {str(e)}")
+        raise
 
     def get_form_status(self):
         """
