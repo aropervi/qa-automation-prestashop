@@ -12,11 +12,10 @@ class DriverFactory:
         browser: "chrome" o "firefox"
         headless: bool para ejecutar sin interfaz gráfica
         """
-        # Forzar headless en CI
-        is_ci = os.getenv('CI') == 'true'
-        if is_ci:
+        # Detectar si estamos en CI y forzar headless
+        if os.getenv('CI') == 'true':
             headless = True
-            print("[INFO] Ambiente CI detectado - forzando modo headless")
+            print("[INFO] CI detectado: modo headless activado")
 
         browser = browser.lower()
 
@@ -30,7 +29,6 @@ class DriverFactory:
             if headless:
                 options.add_argument("--headless=new")  # Nueva sintaxis para Chrome
                 options.add_argument("--disable-gpu")
-                print("[INFO] Modo headless activado para Chrome")
             try:
                 print("[INFO] Iniciando ChromeDriver...")
                 from webdriver_manager.chrome import ChromeDriverManager
@@ -39,14 +37,13 @@ class DriverFactory:
                     options=options
                 )
             except WebDriverException as e:
-                raise RuntimeError(f"Error inicializando ChromeDriver: {str(e)}") from e
+                raise RuntimeError("Error inicializando ChromeDriver.") from e
 
         elif browser == "firefox":
             from selenium.webdriver.firefox.options import Options
             options = Options()
             if headless:
                 options.add_argument("--headless")
-                print("[INFO] Modo headless activado para Firefox")
             try:
                 print("[INFO] Iniciando GeckoDriver para Firefox...")
                 from webdriver_manager.firefox import GeckoDriverManager
@@ -55,7 +52,7 @@ class DriverFactory:
                     options=options
                 )
             except WebDriverException as e:
-                raise RuntimeError(f"Error inicializando GeckoDriver: {str(e)}") from e
+                raise RuntimeError("Error inicializando GeckoDriver.") from e
 
         else:
             raise ValueError(f"Browser '{browser}' no soportado. Usa 'chrome' o 'firefox'.")

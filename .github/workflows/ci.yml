@@ -35,8 +35,8 @@ jobs:
         
     - name: Run tests with Chrome
       run: |
-        pytest tests/test_contact.py --browser=chrome --headless -v
+        pytest tests/test_contact.py tests/test_registration.py --browser=chrome -v
         
     - name: Run tests with Firefox
       run: |
-        pytest tests/test_contact.py --browser=firefox --headless -v
+        pytest tests/test_contact.py tests/test_registration.py --browser=firefox -v
